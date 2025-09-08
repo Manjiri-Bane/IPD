@@ -1,14 +1,14 @@
 import pandas as pd
 
 # Load your CSV
-df = pd.read_csv("cleaned_features.csv")
+df = pd.read_csv("initial.csv")
 
 # Define mapping
 emotion_map = {
     "happy": "positive",
     "surprised": "positive",
-    "neutral": "neutral",
-    "calm": "neutral",
+    "neutral": "positive",
+    "calm": "positive",
     "sad": "negative",
     "angry": "negative",
     "fearful": "negative",
@@ -19,6 +19,6 @@ emotion_map = {
 df["sentiment"] = df["emotion"].map(emotion_map)
 
 # Save as new CSV
-df.to_csv("cleaned_features_grouped.csv", index=False)
+df.to_csv("grouped.csv", index=False)
 
-print("✅ File saved as cleaned_features_grouped.csv")
+print("✅ File saved as grouped.csv")
