@@ -6,12 +6,25 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
 import os
 
-folder_path = r"D:\Minori Wakade\3rd sem\IPD\ml-public-speaking-evaluator\IPD\RAVDESS"
+# confusion matrix
+def plot_confusion_matrix(y_true, y_pred, model_name, labels):
+    cm = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+                xticklabels=labels, yticklabels=labels)
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+    plt.title(f"{model_name} - Confusion Matrix")
+    plt.show()
 
-df = pd.read_csv("grouped.csv")  # Columns: 'file_name' and 'sentiment'
+# Dataset & Feature Extraction
+folder_path = r"D:\Minori Wakade\3rd sem\IPD\ml-public-speaking-evaluator\IPD\RAVDESS"
+df = pd.read_csv("grouped.csv")  
 
 def extract_features(file_path):
     y, sr = librosa.load(file_path, sr=None)
@@ -24,9 +37,7 @@ def extract_features(file_path):
     return features
 
 unique_files = df["file_name"].unique()
-
-X = []
-y = []
+X, y = [], []
 
 for i, f in enumerate(unique_files):
     file_path = os.path.join(folder_path, f)
@@ -42,14 +53,15 @@ for i, f in enumerate(unique_files):
 X = np.array(X)
 y = np.array(y)
 
+# Save extracted features
 feature_names = [f"feat_{i}" for i in range(X.shape[1])]
 features_df = pd.DataFrame(X, columns=feature_names)
-features_df["file_name"] = unique_files[:len(X)]  # to keep track
+features_df["file_name"] = unique_files[:len(X)]  
 features_df["sentiment"] = y
-
 features_df.to_csv("extracted_features.csv", index=False)
 print("Saved extracted features to extracted_features.csv")
 
+# Preprocessing
 le = LabelEncoder()
 y = le.fit_transform(y)
 
@@ -61,6 +73,7 @@ scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
+# Random Forest
 rf = RandomForestClassifier(n_estimators=300, max_depth=20, random_state=42)
 rf.fit(X_train, y_train)
 rf_pred = rf.predict(X_test)
@@ -69,6 +82,11 @@ print("\n🔹 Random Forest Results:")
 print("Accuracy:", accuracy_score(y_test, rf_pred))
 print(classification_report(y_test, rf_pred, target_names=le.classes_))
 
+print("\nConfusion Matrix (Raw Counts):")
+print(confusion_matrix(y_test, rf_pred))
+plot_confusion_matrix(y_test, rf_pred, "Random Forest", le.classes_)
+
+# XGBoost
 xgb = XGBClassifier(
     n_estimators=500,
     max_depth=8,
@@ -85,6 +103,11 @@ print("\n🔹 XGBoost Results:")
 print("Accuracy:", accuracy_score(y_test, xgb_pred))
 print(classification_report(y_test, xgb_pred, target_names=le.classes_))
 
+print("\nConfusion Matrix (Raw Counts):")
+print(confusion_matrix(y_test, xgb_pred))
+plot_confusion_matrix(y_test, xgb_pred, "XGBoost", le.classes_)
+
+# Save models and preprocessing objects
 joblib.dump(rf, "random_forest_model.pkl")
 joblib.dump(xgb, "xgboost_model.pkl")
 joblib.dump(scaler, "scaler.pkl")
