@@ -5,8 +5,9 @@ import joblib
 import speech_recognition as sr_module
 import os
 from utils import video_to_wav
-from eyecontact import process_eye_contact
-from speech_speed import extract_wpm, categorize_wpm
+from Eye_Contact.eyecontact import process_eye_contact
+from Speech_Speed.speech_speed import extract_wpm, categorize_wpm
+from Posture.posture_utils import run_posture_analysis
 
 st.set_page_config(page_title="SpeakSmart", layout="wide")
 st.title("🎯 SpeakSmart: AI Public Speaking Analyzer")
@@ -46,9 +47,9 @@ if uploaded_file is not None:
     st.info(f"✅ Audio extracted successfully from `{uploaded_file.name}`")
 
     # --- Initialize models ---
-    xgb = joblib.load("xgboost_model.pkl")
-    scaler = joblib.load("scaler.pkl")
-    le = joblib.load("label_encoder.pkl")
+    xgb = joblib.load("Sentiment Analysis/xgboost_model.pkl")
+    scaler = joblib.load("Sentiment Analysis/scaler.pkl")
+    le = joblib.load("Sentiment Analysis/label_encoder.pkl")
 
     # --- Feature Extraction Functions ---
     def extract_features(file_path):
@@ -71,7 +72,7 @@ if uploaded_file is not None:
 
     # Eye Contact Analysis
     processed_video_path = "processed_output.mp4"
-    eye_contact_percentage, output_path = process_eye_contact(file_path, processed_video_path, update_progress)
+    eye_contact_percentage, eye_feedback, output_path = process_eye_contact(file_path, processed_video_path, update_progress)
 
     # Speech Analysis
     wpm = extract_wpm(audio_path)
@@ -88,6 +89,8 @@ if uploaded_file is not None:
     }
 
     st.success("✅ Analysis Complete!")
+
+    posture_result = run_posture_analysis(file_path)
 
     # --- Display Results ---
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -170,13 +173,16 @@ if uploaded_file is not None:
             <div class="report-card blue-card">
                 <div class="report-title">👁️ Eye Contact</div>
                 <div class="report-metric"><b>Eye Contact:</b> {eye_contact_percentage:.2f}%</div>
+                <div class="report-metric"><b>Feedback:</b> {eye_feedback}</div>
             </div>
         """, unsafe_allow_html=True)
 
     with col4:
-        st.markdown("""
+        st.markdown(f"""
             <div class="report-card gray-card">
                 <div class="report-title">🧍‍♂️ Posture Analysis</div>
-                <div class="dim-text">Coming Soon...</div>
-            </div>
+                <div class="report-metric"><b>Good Posture:</b> {posture_result.get('good_percent', 0):.2f}%</div>
+                <div class="report-metric"><b>Summary:</b> {posture_result.get('summary', 'No summary available')}</div>
         """, unsafe_allow_html=True)
+
+
